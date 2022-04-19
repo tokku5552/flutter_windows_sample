@@ -1,6 +1,17 @@
-import 'package:flutter/material.dart';
+import 'dart:developer';
 
-void main() {
+import 'package:flutter/material.dart';
+import 'package:flutter_windows_sample/setting_page.dart';
+import 'package:flutter_windows_sample/type/data.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+
+late Box box;
+
+void main() async {
+  await Hive.initFlutter();
+  Hive.registerAdapter(DataAdapter());
+  box = await Hive.openBox('settings');
+
   runApp(const MyApp());
 }
 
@@ -28,11 +39,26 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  String _result = "";
+  late Data _current;
 
-  void _incrementCounter() {
+  void _shuffle() {
+    log(_current.title);
+    log(_current.list[0]);
     setState(() {
-      _counter++;
+      _result = _current.list[0];
+    });
+  }
+
+  @override
+  Future<void> initState() async {
+    _current = await box.get('current');
+    super.initState();
+  }
+
+  void refresh() async {
+    setState(() {
+      _current = box.get('current');
     });
   }
 
@@ -46,18 +72,40 @@ class _MyHomePageState extends State<MyHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
             Text(
-              '$_counter',
+              _result,
               style: Theme.of(context).textTheme.headline4,
             ),
+            Text(
+              'に決定しました！',
+              style: Theme.of(context).textTheme.headline4,
+            ),
+            const SizedBox(
+              height: 16,
+            ),
+            ElevatedButton(
+                onPressed: _shuffle,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  child: Text(
+                    'shuffle',
+                    style: Theme.of(context).textTheme.headline5,
+                  ),
+                ))
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
+        onPressed: () async {
+          Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (BuildContext context) {
+                    return const SettingPage();
+                  },
+                  fullscreenDialog: true));
+          refresh();
+        },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
       ),
